@@ -8,10 +8,10 @@ async function loadInitialStorage() {
         if (!response.ok) {
             throw new Error(`Eroare HTTP: ${response.status}`);
         }
-        
-        const inventoryDataArray = await response.json(); 
+
+        const inventoryDataArray = await response.json();
         const inventoryLocationsObject = {};
-        
+
         if (Array.isArray(inventoryDataArray)) {
             inventoryDataArray.forEach(item => {
                 const { sku, location, quantity } = item;
@@ -49,19 +49,19 @@ async function fetchAndSetupOrders() {
     try {
         const response = await fetch(GET_ORDERS_WEBHOOK_URL);
         if (!response.ok) throw new Error(`Eroare HTTP: ${response.status}`);
-        liveOrders = await response.json(); 
-        
+        liveOrders = await response.json();
+
         if (!Array.isArray(liveOrders)) {
             console.warn("Răspunsul de la API-ul de comenzi nu a fost un array.", liveOrders);
             liveOrders = [];
         }
-        
+
     } catch (error) {
         console.error("Eroare la preluarea comenzilor:", error);
         showToast("Eroare la preluarea comenzilor.", true);
         liveOrders = [];
     } finally {
-        setupDashboardNotification(); 
+        setupDashboardNotification();
     }
 }
 
@@ -73,7 +73,7 @@ async function sendStorageUpdate(sku, location, operation_type, value) {
         console.warn("Actualizare stoc anulată, date invalide:", { sku, location, operation_type, value });
         return;
     }
-    
+
     const payload = {
         sku: sku,
         location: location,
@@ -116,10 +116,10 @@ async function fetchProductDetailsBatch(skus) {
             productsToReturn[sku] = placeholderProduct;
         }
     }
-    
+
     // Salvează noile placeholder-uri (dacă au fost)
-    saveToLocalStorage('productDatabase', productDB); 
-    
+    saveToLocalStorage('productDatabase', productDB);
+
     // Returnează direct, fără apel API (fără showLoading)
     return productsToReturn;
 }
@@ -133,41 +133,11 @@ async function getProductDetails(sku) {
     if (productDB[sku]) {
         return productDB[sku]; // Returnează din cache
     }
-    
+
     // Apeleză funcția de batch (care acum e locală și rapidă)
     const productMap = await fetchProductDetailsBatch([sku]);
-    
+
     return productMap[sku];
-}
-
-async function sendPrintTokenUpdate(curlString) {
-    if (!curlString || curlString.length < 10) {
-        showToast("Text invalid.", true);
-        return;
-    }
-
-    showLoading(true);
-    try {
-        // Trimitem un JSON simplu { curl: "..." } așa cum am configurat în n8n
-        const response = await fetch(REFRESH_TOKEN_WEBHOOK, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ curl: curlString })
-        });
-
-        if (response.ok) {
-            showToast("Token actualizat cu succes!");
-            return true;
-        } else {
-            throw new Error(`Eroare server: ${response.status}`);
-        }
-    } catch (error) {
-        console.error("Eroare actualizare token:", error);
-        showToast("Eroare la actualizare.", true);
-        return false;
-    } finally {
-        showLoading(false);
-    }
 }
 
 async function sendPrintAwbRequest(payload) {
@@ -244,9 +214,9 @@ async function sendInvoiceRequest(payload) {
         });
 
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        
+
         const data = await response.json();
-        
+
         // Verificăm dacă EasySales a răspuns cu success: true
         if (data.success === true) {
             showToast("Factură generată cu succes!");
@@ -272,7 +242,6 @@ window.fetchAndSetupOrders = fetchAndSetupOrders;
 window.sendStorageUpdate = sendStorageUpdate;
 window.fetchProductDetailsBatch = fetchProductDetailsBatch;
 window.getProductDetails = getProductDetails;
-window.sendPrintTokenUpdate = sendPrintTokenUpdate;
 window.sendPrintAwbRequest = sendPrintAwbRequest;
 window.sendGenerateAwbRequest = sendGenerateAwbRequest;
 window.sendInvoiceRequest = sendInvoiceRequest;
