@@ -442,9 +442,12 @@ function showItemSuccessOverlay() {
 async function handleOrderComplete(orderData) {
     const orderId = orderData.order_id || orderData.id;
     const internalId = orderData.internal_id || "N/A";
+    const awbUrl = orderData.awb_url;
+    const marketplace = orderData.marketplace || "Unknown";
 
     showToast(`Finalizare comandă ${internalId}...`, false);
 
+    // 1. Emitere Factură (Rămâne la fel)
     const invoiceSuccess = await window.sendInvoiceRequest({
         internal_order_id: internalId
     });
@@ -454,12 +457,30 @@ async function handleOrderComplete(orderData) {
         return false; 
     }
 
-    console.log("AWB Generation/Printing skipped per configuration.");
-
-    showToast("Comandă procesată cu succes.", false);
+    // 2. NOUA Logică AWB (Local Print)
+    try {
+        if (awbUrl && awbUrl.length > 5) {
+            showToast("Descarc și procesez AWB-ul...", false);
+            
+            // Această funcție va fi creată de AI-ul tău cu Capacitor HTTP
+            const zplString = await window.downloadAndConvertAwb(awbUrl); 
+            
+            showToast("Trimit către Zebra...", false);
+            // Această funcție va fi creată de AI-ul tău cu Capacitor Bluetooth
+            await window.NativePrinter.print(zplString); 
+            
+        } else {
+            await window.sendGenerateAwbRequest({
+                internalId: internalId,
+                marketplace: marketplace
+            });
+        }
+    } catch (e) {
+        showToast("Eroare la procesare AWB.", true);
+        return false;
+    }
 
     await showSuccessTimer();
-
     return true;
 }
 
