@@ -408,14 +408,64 @@
     <div id="toast"></div>
     <div id="loading-overlay"><div class="spinner"></div></div>
 
-    <div id="settings-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-card-light dark:bg-card-dark w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-slide-in border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-bold dark:text-white mb-2">Admin: Actualizare Token</h3>
-            <textarea id="settings-curl-input" rows="6" class="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-xs font-mono mb-6 dark:text-white" placeholder='curl "https://easy-sales.com/..." ...'></textarea>
-            <div class="flex space-x-3">
-                <button onclick="closeSettingsModal()" class="flex-1 py-3 text-gray-500 dark:text-gray-400 font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl">Anulează</button>
-                <button onclick="handleTokenSubmit()" class="flex-1 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/30">Salvează</button>
+    <div id="settings-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-card-light dark:bg-card-dark w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-slide-in border border-gray-200 dark:border-gray-700 my-4">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-bold dark:text-white">Setări</h3>
+                <button onclick="closeSettingsModal()" class="p-1 text-gray-400 hover:text-white transition-colors">
+                    <span class="material-icons-outlined">close</span>
+                </button>
             </div>
+
+            <!-- Secțiunea Token API -->
+            <div class="mb-6">
+                <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">🔑 Token API</h4>
+                <textarea id="settings-curl-input" rows="4" class="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-xs font-mono mb-3 dark:text-white" placeholder='curl "https://easy-sales.com/..." ...'></textarea>
+                <button onclick="handleTokenSubmit()" class="w-full py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/30 hover:bg-primary-dark transition-colors">Salvează Token</button>
+            </div>
+
+            <!-- Separator -->
+            <div class="border-t border-gray-200 dark:border-gray-700 my-5"></div>
+
+            <!-- Secțiunea Bluetooth Printer -->
+            <div>
+                <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">🖨️ Imprimantă Bluetooth</h4>
+                
+                <!-- Status Conexiune -->
+                <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-800/60 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-3">
+                        <div id="bt-status-dot" class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div>
+                            <p id="bt-status-text" class="text-sm font-semibold text-red-400">Deconectat</p>
+                            <p id="bt-saved-mac" class="text-xs text-gray-400 font-mono mt-0.5">Niciun dispozitiv salvat</p>
+                        </div>
+                    </div>
+                    <button onclick="window.BluetoothPrinter.forget()" class="text-xs text-gray-400 hover:text-red-400 transition-colors px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-600">
+                        Uită
+                    </button>
+                </div>
+
+                <!-- Buton Listare Dispozitive -->
+                <button onclick="openBluetoothSettings()" class="w-full flex items-center justify-center gap-2 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-semibold dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors mb-3">
+                    <span class="material-icons-outlined text-base">bluetooth_searching</span>
+                    Listează Dispozitive Paired
+                </button>
+
+                <!-- Lista Dispozitive (ascunsă inițial) -->
+                <div id="bt-devices-panel" class="hidden">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Selectează imprimanta Zebra:</p>
+                    <div id="bt-devices-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        <!-- Populat dinamic de bluetooth.js -->
+                    </div>
+                </div>
+
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+                    Asigură-te că Zebra ZQ521 este imperecheat în Setările Android înainte de conectare.
+                </p>
+            </div>
+
         </div>
     </div>
 
@@ -430,5 +480,6 @@
     <script type="module" src="scripts/main.js"></script>
     <script type="module" src="scripts/hardware-scanner.js"></script>
     <script type="module" src="scripts/printer.js"></script>
+    <script type="module" src="scripts/bluetooth.js"></script>
 </body>
 </html>

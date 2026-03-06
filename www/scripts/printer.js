@@ -62,17 +62,17 @@ const compressZPLHex = (hex) => {
         if (hex[i] === hex[i - 1] && count < 419) {
             count++;
         } else {
-            if (count > 2) { 
-                let zCount = Math.floor(count / 400); 
+            if (count > 2) {
+                let zCount = Math.floor(count / 400);
                 let remainder = count % 400;
-                let tens = Math.floor(remainder / 20); 
-                let ones = remainder % 20; 
+                let tens = Math.floor(remainder / 20);
+                let ones = remainder % 20;
 
                 for (let z = 0; z < zCount; z++) compressed += 'z';
-                if (tens > 0) compressed += String.fromCharCode(103 + tens - 1); 
-                if (ones > 0) compressed += String.fromCharCode(71 + ones - 1);  
+                if (tens > 0) compressed += String.fromCharCode(103 + tens - 1);
+                if (ones > 0) compressed += String.fromCharCode(71 + ones - 1);
 
-                compressed += hex[i - 1]; 
+                compressed += hex[i - 1];
             } else {
                 for (let t = 0; t < count; t++) compressed += hex[i - 1];
             }
@@ -159,26 +159,46 @@ window.renderPdfToZpl = async (buffer) => {
 // ============================================================================
 
 // Această funcție descarcă PDF-ul ocolind CORS dacă rulează în APK (Capacitor)
+// CapacitorHttp (activat global în capacitor.config.json) interceptează automat
+// toate request-urile fetch/XHR și le rulează prin HTTP nativ Android (bypass CORS).
 window.downloadAndConvertAwb = async (url) => {
     let arrayBuffer;
 
-    if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp) {
-        console.log('[Printer] Descarcare PDF via CapacitorHttp (Bypass CORS)...');
-        const response = await window.Capacitor.Plugins.CapacitorHttp.get({
-            url: url,
-            responseType: 'arraybuffer'
-        });
-        
-        // CapacitorHttp returnează base64 pentru arraybuffer uneori, trebuie decodat
-        const base64 = response.data;
-        const binaryString = window.atob(base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        console.log('[Printer] Descarcare PDF via CapacitorHttp nativ (Bypass CORS)...');
+        // Pe platforma nativă, CapacitorHttp este activat global și interceptează fetch().
+        // Folosim totuși plugin-ul direct pentru a controla responseType explicit.
+        try {
+            const { CapacitorHttp } = window.Capacitor.Plugins;
+            const response = await CapacitorHttp.get({
+                url: url,
+                responseType: 'arraybuffer',
+                headers: {
+                    'Accept': 'application/pdf,application/octet-stream,*/*'
+                }
+            });
+
+            // CapacitorHttp returnează data ca string base64 când responseType='arraybuffer'
+            const data = response.data;
+            if (typeof data === 'string') {
+                // Răspuns base64 – decodăm
+                const binaryString = window.atob(data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                arrayBuffer = bytes.buffer;
+            } else {
+                // Răspuns deja ArrayBuffer (unele versiuni de plugin)
+                arrayBuffer = data;
+            }
+        } catch (e) {
+            console.warn('[Printer] CapacitorHttp direct a eșuat, fallback fetch:', e);
+            const response = await fetch(url);
+            arrayBuffer = await response.arrayBuffer();
         }
-        arrayBuffer = bytes.buffer;
     } else {
-        console.log('[Printer] Descarcare PDF via Fetch Standard (Poate da eroare CORS in browser)...');
+        console.log('[Printer] Descarcare PDF via Fetch standard (browser – poate da eroare CORS)...');
         const response = await fetch(url);
         arrayBuffer = await response.arrayBuffer();
     }
@@ -186,17 +206,43 @@ window.downloadAndConvertAwb = async (url) => {
     return await window.renderPdfToZpl(arrayBuffer);
 };
 
-// Obiectul Bridge pentru Bluetooth. 
-// AI-ul va completa interiorul funcției `print` cu logica pluginului Bluetooth Serial.
+// ============================================================================
+// NATIVE PRINTER – Bridge ZPL → Bluetooth SPP (Zebra ZQ521)
+// Deleghează la window.BluetoothPrinter din bluetooth.js
+// ============================================================================
+
 window.NativePrinter = {
-    print: async function(zplString) {
+    /**
+     * Trimite un string ZPL la imprimanta Zebra prin Bluetooth Classic SPP.
+     * Dacă nu există conexiune activă, încearcă auto-reconectarea cu MAC-ul salvat.
+     * @param {string} zplString
+     */
+    print: async function (zplString) {
         if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-            console.log("[NativePrinter] Se trimite codul ZPL prin Bluetooth-ul nativ...");
-            // AICI VA INTERVENI CODUL SCRIS DE AI (Ex: BluetoothSerial.write(...))
-            alert("Aplicația trebuie recompilată cu plugin-ul Bluetooth activ pentru a printa.");
+            console.log('[NativePrinter] Pregătire trimitere ZPL prin Bluetooth nativ...');
+
+            if (!window.BluetoothPrinter) {
+                throw new Error('Modulul BluetoothPrinter nu este inițializat. Verifică că bluetooth.js este încărcat.');
+            }
+
+            // Verifică dacă există conexiune activă
+            const connected = await window.BluetoothPrinter.isConnected();
+            if (!connected) {
+                const savedMac = localStorage.getItem('bt_printer_mac');
+                if (!savedMac) {
+                    throw new Error('Nicio imprimantă Bluetooth configurată. Deschide Setările și conectează-te la Zebra ZQ521.');
+                }
+                console.log('[NativePrinter] Reconectare automată la', savedMac, '...');
+                await window.BluetoothPrinter.connect(savedMac);
+            }
+
+            await window.BluetoothPrinter.printZpl(zplString);
+            console.log('[NativePrinter] ✓ ZPL trimis cu succes la imprimantă.');
         } else {
-            console.log("[NativePrinter] Simulare browser. ZPL generat cu succes:");
-            console.log(zplString.substring(0, 100) + "...[trunchiat]");
+            // Mod browser – simulăm printarea în consolă
+            console.log('[NativePrinter] Mod browser – simulare printare ZPL:');
+            console.log(zplString.substring(0, 150) + '... [trunchiat]');
+            if (window.showToast) showToast('Browser: ZPL generat. Pe Android se va printa via Bluetooth.');
         }
     }
 };
