@@ -47,14 +47,15 @@ jobs:
         run: |
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      # 8. Adăugare platformă Android Capacitor (dacă lipsește gradlew)
+      # 8. Asigurare platformă Android completă
       - name: Add Android platform
         run: |
           if [ ! -f "android/gradlew" ]; then
-            echo "Structură Android incompletă sau absentă. Rulăm npx cap add android..."
+            echo "Structură Android incompletă detected. Curățăm și regenerăm..."
+            rm -rf android
             npx cap add android
           else
-            echo "Platforma Android este deja configurată corect."
+            echo "Platforma Android este prezentă și pare validă."
           fi
 
       # 9. Sync Capacitor
