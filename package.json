@@ -12,7 +12,7 @@
   "dependencies": {
     "@capacitor/android": "^6.2.0",
     "@capacitor/core": "^6.2.0",
-    "cordova-plugin-bluetooth-serial": "^0.4.7",
+    "cordova-plugin-bluetooth-serial": "git+https://github.com/brandomcombr/BluetoothSerial.git",
     "@capacitor-community/bluetooth-le": "^3.0.0"
   },
   "devDependencies": {
