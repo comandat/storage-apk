@@ -52,11 +52,9 @@ window.BluetoothPrinter = {
 
             console.log('[BT] Permisiuni Bluetooth acordate!');
         } catch (e) {
-            console.error('[BT] Eroare la cererea permisiunilor:', e);
-            throw new Error(
-                'Permisiunile Bluetooth sunt necesare.\n' +
-                'Mergi la Setări Android → Aplicații → Manager Stocuri → Permisiuni → Dispozitive din apropiere → Permite.'
-            );
+            console.warn('[BT] Atentionare la cererea permisiunilor LE:', e);
+            // Nu dam throw, pentru ca unele telefoane dau reject desi permisiunea exista.
+            // Lasam functia list() din plugin-ul Serial sa incerce.
         }
     },
 
