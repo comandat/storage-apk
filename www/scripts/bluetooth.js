@@ -25,10 +25,78 @@ const getBtPlugin = () => {
 window.BluetoothPrinter = {
 
     /**
+     * Cere permisiunile BLUETOOTH_CONNECT și BLUETOOTH_SCAN pe Android 12+.
+     * Pe versiuni mai vechi sau în browser, este no-op.
+     * @returns {Promise<void>}
+     */
+    requestPermissions: function () {
+        return new Promise((resolve, reject) => {
+            // Doar pe dispozitive native Android
+            if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+                resolve();
+                return;
+            }
+
+            const permissions = window.plugins && window.plugins.permissions;
+            if (!permissions) {
+                console.warn('[BT] cordova-plugin-android-permissions nu este disponibil.');
+                resolve(); // continuăm oricum, unele dispozitive nu au nevoie
+                return;
+            }
+
+            const btPermissions = [
+                'android.permission.BLUETOOTH_CONNECT',
+                'android.permission.BLUETOOTH_SCAN'
+            ];
+
+            permissions.checkPermission(
+                'android.permission.BLUETOOTH_CONNECT',
+                (status) => {
+                    if (status.hasPermission) {
+                        console.log('[BT] Permisiuni Bluetooth deja acordate.');
+                        resolve();
+                        return;
+                    }
+
+                    // Cerem permisiunile la runtime
+                    console.log('[BT] Se cer permisiunile BLUETOOTH_CONNECT & BLUETOOTH_SCAN...');
+                    permissions.requestPermissions(
+                        btPermissions,
+                        (result) => {
+                            const granted = result.requestResults &&
+                                result.requestResults.every(r => r.granted !== false);
+                            if (granted) {
+                                console.log('[BT] Permisiuni acordate!');
+                                resolve();
+                            } else {
+                                reject(new Error(
+                                    'Permisiunile Bluetooth au fost refuzate.\n' +
+                                    'Du-te la Setări Android → Aplicații → Manager Stocuri → ' +
+                                    'Permisiuni → Dispozitive din apropiere → Permite.'
+                                ));
+                            }
+                        },
+                        () => {
+                            reject(new Error('Nu s-a putut cere permisiunea Bluetooth.'));
+                        }
+                    );
+                },
+                () => {
+                    // Dacă checkPermission eșuează (ex: Android < 12), continuăm
+                    console.warn('[BT] checkPermission a eșuat – continuăm fără verificare.');
+                    resolve();
+                }
+            );
+        });
+    },
+
+    /**
      * Returnează lista dispozitivelor Bluetooth Classic paired cu Android-ul.
      * @returns {Promise<Array<{name: string, address: string}>>}
      */
-    listPairedDevices: function () {
+    listPairedDevices: async function () {
+        // Cerem permisiunile înainte de orice acces Bluetooth
+        await window.BluetoothPrinter.requestPermissions();
         return new Promise((resolve, reject) => {
             const bt = getBtPlugin();
             if (!bt) {
@@ -66,7 +134,7 @@ window.BluetoothPrinter = {
             }
 
             // Dacă există deja o conexiune, o închidem mai întâi
-            bt.disconnect(() => {}, () => {});
+            bt.disconnect(() => { }, () => { });
 
             console.log('[BT] Conectare la', macAddress, '...');
             bt.connect(
