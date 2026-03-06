@@ -26,68 +26,38 @@ window.BluetoothPrinter = {
 
     /**
      * Cere permisiunile BLUETOOTH_CONNECT și BLUETOOTH_SCAN pe Android 12+.
-     * Pe versiuni mai vechi sau în browser, este no-op.
+     * Folosește @capacitor-community/bluetooth-le pentru a declanșa dialogul nativ.
      * @returns {Promise<void>}
      */
-    requestPermissions: function () {
-        return new Promise((resolve, reject) => {
-            // Doar pe dispozitive native Android
-            if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
-                resolve();
-                return;
+    requestPermissions: async function () {
+        if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+            return;
+        }
+
+        const { BluetoothLe } = window.Capacitor.Plugins;
+        if (!BluetoothLe) {
+            console.warn('[BT] Capacitor BluetoothLe plugin nu este disponibil pentru cererea de permisiuni.');
+            return;
+        }
+
+        try {
+            console.log('[BT] Se cer permisiunile Bluetooth folosind Capacitor BluetoothLe...');
+            // Asta va cere automat BLUETOOTH_CONNECT și BLUETOOTH_SCAN pe Android 12+
+            await BluetoothLe.initialize();
+
+            // Pentru siguranță extra, apelăm metoda explicită (dacă e expusă)
+            if (BluetoothLe.requestPermissions) {
+                await BluetoothLe.requestPermissions();
             }
 
-            const permissions = window.plugins && window.plugins.permissions;
-            if (!permissions) {
-                console.warn('[BT] cordova-plugin-android-permissions nu este disponibil.');
-                resolve(); // continuăm oricum, unele dispozitive nu au nevoie
-                return;
-            }
-
-            const btPermissions = [
-                'android.permission.BLUETOOTH_CONNECT',
-                'android.permission.BLUETOOTH_SCAN'
-            ];
-
-            permissions.checkPermission(
-                'android.permission.BLUETOOTH_CONNECT',
-                (status) => {
-                    if (status.hasPermission) {
-                        console.log('[BT] Permisiuni Bluetooth deja acordate.');
-                        resolve();
-                        return;
-                    }
-
-                    // Cerem permisiunile la runtime
-                    console.log('[BT] Se cer permisiunile BLUETOOTH_CONNECT & BLUETOOTH_SCAN...');
-                    permissions.requestPermissions(
-                        btPermissions,
-                        (result) => {
-                            const granted = result.requestResults &&
-                                result.requestResults.every(r => r.granted !== false);
-                            if (granted) {
-                                console.log('[BT] Permisiuni acordate!');
-                                resolve();
-                            } else {
-                                reject(new Error(
-                                    'Permisiunile Bluetooth au fost refuzate.\n' +
-                                    'Du-te la Setări Android → Aplicații → Manager Stocuri → ' +
-                                    'Permisiuni → Dispozitive din apropiere → Permite.'
-                                ));
-                            }
-                        },
-                        () => {
-                            reject(new Error('Nu s-a putut cere permisiunea Bluetooth.'));
-                        }
-                    );
-                },
-                () => {
-                    // Dacă checkPermission eșuează (ex: Android < 12), continuăm
-                    console.warn('[BT] checkPermission a eșuat – continuăm fără verificare.');
-                    resolve();
-                }
+            console.log('[BT] Permisiuni Bluetooth acordate!');
+        } catch (e) {
+            console.error('[BT] Eroare la cererea permisiunilor:', e);
+            throw new Error(
+                'Permisiunile Bluetooth sunt necesare.\n' +
+                'Mergi la Setări Android → Aplicații → Manager Stocuri → Permisiuni → Dispozitive din apropiere → Permite.'
             );
-        });
+        }
     },
 
     /**
