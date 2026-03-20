@@ -473,30 +473,18 @@ function showItemSuccessOverlay() {
 
 async function handleOrderComplete(orderRoute) {
     const orderData = orderRoute.orderData;
-    const orderId = orderData.order_id || orderData.id;
     const internalId = orderData.internal_id || "N/A";
     const awbUrl = orderData.awb_url;
     const marketplace = orderData.marketplace || "Unknown";
 
     showToast(`Finalizare comandă ${internalId}...`, false);
 
-    // 1. Emitere Factură (Rămâne la fel)
-    const invoiceSuccess = await window.sendInvoiceRequest({
-        internal_order_id: internalId
-    });
-
-    if (!invoiceSuccess) {
-        showToast("STOP: Facturare eșuată.", true);
-        return false;
-    }
-
-    // 2. Printare AWB local prin Bluetooth
+    // 1. Printare AWB local prin Bluetooth (Primul pas, prioritar)
     try {
         let zplString = null;
 
         if (awbUrl && awbUrl.length > 5) {
-            // ── Ramura A: AWB deja existent ──────────────────────────────────
-            // Folosim ZPL-ul pre-descărcat dacă e disponibil (printare instant)
+            // ── Ramura A: AWB deja existent
             if (orderRoute._cachedZpl) {
                 console.log('[Print] Folosim ZPL pre-descărcat din cache.');
                 zplString = orderRoute._cachedZpl;
@@ -505,7 +493,7 @@ async function handleOrderComplete(orderRoute) {
                 zplString = await window.downloadAndConvertAwb(awbUrl);
             }
         } else {
-            // ── Ramura B: AWB inexistent → Generare + Descărcare + Printare ─
+            // ── Ramura B: AWB inexistent → Generare + Descărcare + Printare
             showToast("Generez AWB...", false);
             const generatedUrl = await window.sendGenerateAwbRequest({
                 internalId: internalId,
@@ -530,6 +518,22 @@ async function handleOrderComplete(orderRoute) {
         showToast("Eroare la printare AWB: " + e.message, true);
         return false;
     }
+
+    // 2. Emitere Factură (În background, fără a aștepta sau a bloca UI-ul)
+    fetch(window.INVOICE_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ internal_order_id: internalId })
+    })
+    .then(async res => {
+        const data = await res.json();
+        if (data.success === true) {
+            console.log(`[Factura BG] Factură generată cu succes pt comanda ${internalId}.`);
+        } else {
+            console.error(`[Factura BG] Eroare generare:`, data);
+        }
+    })
+    .catch(e => console.error('[Factura BG] Eroare rețea factura:', e));
 
     await showSuccessTimer();
     return true;
