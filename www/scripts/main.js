@@ -62,3 +62,20 @@ async function testPrint() {
 window.openSettingsModal = openSettingsModal;
 window.closeSettingsModal = closeSettingsModal;
 window.testPrint = testPrint;
+
+async function calibratePrinter() {
+    if (!confirm('Atenție: imprimanta va avansa 2-3 etichete pentru a-și calibra senzorul. Continui?')) return;
+    showToast('Calibrare în curs...', false);
+    try {
+        // ^MNY = Media Tracking Gap/Notch | ~JC = Auto-Calibrate senzor
+        // ^JUS = Salvare permanentă în NVRAM (supraviețuiește repornirii)
+        const calibCmd = '^XA^MNY^JUS^XZ\r\n^XA~JC^XZ';
+        await window.NativePrinter.print(calibCmd);
+        showToast('✅ Calibrare completă trimisă! Așteaptă finalizarea.', false);
+    } catch (e) {
+        console.error('Eroare calibrare:', e);
+        showToast('Eroare calibrare: ' + (e.message || 'Unknown error'), true);
+    }
+}
+
+window.calibratePrinter = calibratePrinter;

@@ -174,7 +174,7 @@ async function sendGenerateAwbRequest(payload) {
     // Payload așteptat: { internalId: "...", marketplace: "..." }
     if (!payload || !payload.internalId) {
         showToast("Date lipsă pentru generare AWB.", true);
-        return;
+        return null;
     }
 
     showLoading(true);
@@ -185,15 +185,23 @@ async function sendGenerateAwbRequest(payload) {
             body: JSON.stringify(payload)
         });
 
-        if (response.ok) {
-            showToast(`Se generează AWB pentru ${payload.internalId}...`);
-            // Dacă generarea reușește, webhook-ul din n8n va declanșa automat și printarea
-        } else {
+        if (!response.ok) {
             throw new Error(`Eroare server: ${response.status}`);
+        }
+
+        // Răspuns așteptat: { "success": true, "data": { "url": "https://...", "id": [...] } }
+        const result = await response.json();
+
+        if (result.success && result.data?.url) {
+            showToast(`AWB generat pentru ${payload.internalId}. Se pregătește printarea...`);
+            return result.data.url; // Returnăm URL-ul PDF-ului pentru printare locală
+        } else {
+            throw new Error(result.message || 'Răspuns invalid de la server.');
         }
     } catch (error) {
         console.error("Eroare generare AWB:", error);
-        showToast("Eroare la generarea AWB.", true);
+        showToast("Eroare la generarea AWB: " + error.message, true);
+        return null;
     } finally {
         showLoading(false);
     }
