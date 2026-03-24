@@ -59,6 +59,25 @@ async function testPrint() {
 }
 
 // Expunem funcțiile global
+async function reprintLastAwb() {
+    const lastZpl = localStorage.getItem('last_printed_zpl');
+    if (!lastZpl) {
+        showToast("Nu există AWB salvat în memorie pentru retipărire.", true);
+        return;
+    }
+
+    try {
+        showToast("Se trimite ultimul AWB la imprimantă...", false);
+        await window.NativePrinter.print(lastZpl);
+        showToast("✓ Retipărire trimisă cu succes!", false);
+    } catch (e) {
+        console.error("Eroare Retipărire:", e);
+        showToast("Eroare la printare: " + (e.message || "Unknown error"), true);
+    }
+}
+
+// Expunem funcțiile global
 window.openSettingsModal = openSettingsModal;
 window.closeSettingsModal = closeSettingsModal;
 window.testPrint = testPrint;
+window.reprintLastAwb = reprintLastAwb;

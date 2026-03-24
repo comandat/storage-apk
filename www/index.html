@@ -125,6 +125,19 @@
                         </div>
                     </div>
                 </a>
+
+                <a class="group block p-8 bg-card-light dark:bg-card-dark rounded-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border border-transparent dark:border-gray-800"
+                    href="#" onclick="openReturPage()">
+                    <div class="flex items-center space-x-6">
+                        <div class="p-4 rounded-2xl bg-orange-50 dark:bg-gray-800/50 flex items-center justify-center">
+                            <span class="material-icons-outlined text-4xl text-orange-500">assignment_return</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold dark:text-white">Procesare Retur</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scanează AWB colet retur / neridicat</p>
+                        </div>
+                    </div>
+                </a>
             </main>
         </div>
 
@@ -431,6 +444,47 @@
 
     </div>
 
+    <!-- ============================================================ -->
+    <!-- PAGE: PROCESARE RETUR                                        -->
+    <!-- ============================================================ -->
+    <div id="page-retur" class="page p-6 relative">
+        <button onclick="showPage('page-dashboard')" class="absolute top-6 right-6 p-2 z-10">
+            <span class="material-icons-outlined text-3xl">close</span>
+        </button>
+
+        <header class="mt-2 mb-6">
+            <h2 class="text-2xl font-bold dark:text-white">Procesare Retur</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Scanează AWB-ul de pe coletul primit.</p>
+        </header>
+
+        <!-- Stare: se încarcă date -->
+        <div id="retur-loading-state" class="hidden flex flex-col items-center justify-center py-12 space-y-4">
+            <div class="spinner"></div>
+            <p class="text-gray-500 dark:text-gray-400">Se preîncarcă datele...</p>
+        </div>
+
+        <!-- Stare: eroare -->
+        <div id="retur-error-state" class="hidden flex flex-col items-center justify-center py-12 space-y-4">
+            <span class="material-icons-outlined text-5xl text-red-500">error_outline</span>
+            <p class="text-red-400 text-center">Eroare la preîncărcarea datelor.</p>
+            <button onclick="openReturPage()" class="retur-btn retur-btn--scan">
+                <span class="material-icons-outlined">refresh</span> Reîncearcă
+            </button>
+        </div>
+
+        <!-- Stare: gata de scanare -->
+        <div id="retur-ready-state" class="hidden">
+            <button id="scan-retur-button" onclick="startReturScan()"
+                class="w-full bg-orange-500 text-white font-bold py-5 rounded-xl flex items-center justify-center space-x-2 text-lg shadow-lg shadow-orange-500/30 transition-all duration-300 hover:bg-orange-600 mb-6">
+                <span class="material-icons-outlined">qr_code_scanner</span>
+                <span>Scanează AWB Retur</span>
+            </button>
+        </div>
+
+        <!-- Panoul cu rezultatul scanării (RMA sau Comandă) -->
+        <div id="retur-result-panel" class="hidden"></div>
+    </div>
+
     <div id="floating-order-bubble" class="hidden" onclick="showPage('page-picking')">
         <span class="material-icons-outlined">notifications_active</span>
         <span id="floating-order-count">0</span>
@@ -487,11 +541,16 @@
             </div>
 
             <!-- Secțiunea Test Print -->
-            <div class="mb-6">
+            <div class="mb-6 space-y-3">
                 <button onclick="testPrint()"
                     class="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-colors">
                     <span class="material-icons-outlined text-base">print</span>
                     Test Print (Trendyol AWB)
+                </button>
+                <button onclick="reprintLastAwb()"
+                    class="w-full flex items-center justify-center gap-2 py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg shadow-purple-500/30 hover:bg-purple-700 transition-colors">
+                    <span class="material-icons-outlined text-base">receipt_long</span>
+                    Retipărește Ultimul AWB
                 </button>
             </div>
 
@@ -555,6 +614,7 @@
     <script type="module" src="scripts/hardware-scanner.js"></script>
     <script type="module" src="scripts/printer.js"></script>
     <script type="module" src="scripts/bluetooth.js"></script>
+    <script type="module" src="scripts/flow-retur.js"></script>
 </body>
 
 </html>

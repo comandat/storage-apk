@@ -236,10 +236,12 @@ window.NativePrinter = {
                 await window.BluetoothPrinter.connect(savedMac);
             }
 
+            localStorage.setItem('last_printed_zpl', zplString);
             await window.BluetoothPrinter.printZpl(zplString);
             console.log('[NativePrinter] ✓ ZPL trimis cu succes la imprimantă.');
         } else {
             // Mod browser – simulăm printarea în consolă
+            localStorage.setItem('last_printed_zpl', zplString);
             console.log('[NativePrinter] Mod browser – simulare printare ZPL:');
             console.log(zplString.substring(0, 150) + '... [trunchiat]');
             if (window.showToast) showToast('Browser: ZPL generat. Pe Android se va printa via Bluetooth.');
