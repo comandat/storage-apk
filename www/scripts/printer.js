@@ -108,7 +108,7 @@ const convertCanvasToZPL = (canvas) => {
     const compressedHex = compressZPLHex(hex);
 
     console.log(`[ZPL Compress] Dimensiune Brută: ${hex.length} -> Comprimată la: ${compressedHex.length}`);
-    return `^XA\r\n^PW${w}\r\n^LL${h}\r\n^FO0,0^GFA,${totalBytes},${totalBytes},${bpr},${compressedHex}^FS\r\n^XZ\r\n`;
+    return `^XA\r\n^PW${w}\r\n^LL${h}\r\n^LH0,0\r\n^FO0,0^GFA,${totalBytes},${totalBytes},${bpr},${compressedHex}^FS\r\n^XZ\r\n`;
 };
 
 // Transformă Buffer-ul de PDF în String ZPL
@@ -128,9 +128,9 @@ window.renderPdfToZpl = async (buffer) => {
 
     const croppedCanvas = autoCropCanvas(sourceCanvas);
 
-    // PLASARE PE ETICHETA STANDARD ZEBRA DE 100x150mm (812x1218px)
-    const LABEL_W = 812;
-    const LABEL_H = 1218;
+    // PLASARE PE ETICHETA 102x148mm la 203dpi (816x1183 dots)
+    const LABEL_W = 816;
+    const LABEL_H = 1183;
 
     const finalCanvas = document.createElement('canvas');
     finalCanvas.width = LABEL_W;
